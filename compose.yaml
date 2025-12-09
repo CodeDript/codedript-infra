@@ -1,13 +1,8 @@
-# Comments are provided throughout this file to help you get started.
-# If you need more help, visit the Docker Compose reference guide at
-# https://docs.docker.com/go/compose-spec-reference/
+# CodeDript Production Docker Compose Configuration
+# Multi-service orchestration: Client (React), Server (Express), Database (MongoDB), Reverse Proxy (Nginx)
 
-# Here the instructions define your application as a service called "server".
-# This service is built from the Dockerfile in the current directory.
-# You can add other services your application may depend on here, such as a
-# database or a cache. For examples, see the Awesome Compose repository:
-# https://github.com/docker/awesome-compose
 services:
+  # Nginx Reverse Proxy - Entry point for all HTTP/HTTPS traffic
   nginx:
     image: nginx:alpine
     restart: unless-stopped
@@ -22,6 +17,8 @@ services:
     depends_on:
       server:
         condition: service_healthy
+      client:
+        condition: service_healthy
     networks:
       - codedript-network
     healthcheck:
@@ -31,8 +28,27 @@ services:
       retries: 3
       start_period: 10s
 
+  # React Client - Frontend application
+  client:
+    image: yujiro2hanma/codedript-client:latest
+    restart: unless-stopped
+    environment:
+      # These will be baked into the build - update in GitHub Actions
+      - VITE_API_BASE_URL=${VITE_API_BASE_URL:-http://localhost/api/v1}
+      - VITE_API_URL=${VITE_API_URL:-http://localhost/api/v1}
+    networks:
+      - codedript-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  # Express API Server - Backend application
   server:
     image: yujiro2hanma/codedript:latest
+    restart: unless-stopped
     environment:
       NODE_ENV: production
       PORT: ${PORT}
@@ -52,8 +68,6 @@ services:
       SEPOLIA_RPC_URL: ${SEPOLIA_RPC_URL}
       PINATA_JWT: ${PINATA_JWT}
       PINATA_GATEWAY: ${PINATA_GATEWAY}
-    ports:
-      - "5000:5000"
     depends_on:
       mongodb:
         condition: service_healthy
@@ -65,8 +79,8 @@ services:
       start_period: 40s
     networks:
       - codedript-network
-    restart: unless-stopped
 
+  # MongoDB Database - Data persistence layer
   mongodb:
     image: mongo:7-jammy
     restart: unless-stopped
@@ -93,4 +107,3 @@ volumes:
 networks:
   codedript-network:
     driver: bridge
-
