@@ -28,7 +28,7 @@ services:
 
   # React Client - Frontend application
   client:
-    image: codedript-client:local
+    image: yujiro2hanma/codedript-client:latest
     restart: unless-stopped
     networks:
       - codedript-network
