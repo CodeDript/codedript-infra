@@ -28,7 +28,9 @@ services:
 
   # React Client - Frontend application
   client:
-    image: yujiro2hanma/codedript-client:latest
+    build:
+      context: ../codedript-client
+      dockerfile: Dockerfile
     restart: unless-stopped
     networks:
       - codedript-network
