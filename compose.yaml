@@ -1,29 +1,13 @@
 # CodeDript Production Docker Compose Configuration
-# Multi-service orchestration: Client (React), Server (Express), Database (MongoDB), Reverse Proxy (Nginx)
+# Multi-service orchestration: Client (React), Server (Express), Reverse Proxy (Nginx)
 
 services:
-  # MongoDB Database - Data persistence layer
-  mongodb:
-    image: mongo:7-jammy
-    restart: unless-stopped
-    environment:
-      MONGO_INITDB_DATABASE: codedript
-    volumes:
-      - mongodb-data:/data/db
-      - mongodb-config:/data/configdb
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-    networks:
-      - codedript-network
-
   # Express API Server - Backend application
   server:
     image: yujiro2hanma/codedript:latest
     restart: unless-stopped
+    ports:
+      - "5000:5000"
     environment:
       PORT: ${PORT}
       MONGODB_URI: ${MONGODB_URI}
@@ -41,9 +25,7 @@ services:
       SEPOLIA_RPC_URL: ${SEPOLIA_RPC_URL}
       PINATA_JWT: ${PINATA_JWT}
       PINATA_GATEWAY: ${PINATA_GATEWAY}
-    depends_on:
-      mongodb:
-        condition: service_healthy
+
     healthcheck:
       test:
         [
@@ -97,12 +79,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
-
-volumes:
-  mongodb-data:
-    driver: local
-  mongodb-config:
-    driver: local
 
 networks:
   codedript-network:
